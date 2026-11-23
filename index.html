@@ -396,56 +396,106 @@ const LB_AGE = [ // [maxAgeMonths(excl), A=½ head, B=½ one thigh, C=½ one low
   [180, 5.5, 4.25, 3, "10–14 years"], [99999, 4.5, 4.5, 3.25, "15 years and over"] ];
 function lbBand(ageM){ return LB_AGE.find(b => ageM < b[0]); }
 function lbMirror(str, cx, sg){ let i = 0; return str.replace(/-?\d+(\.\d+)?/g, n => (i++ % 2 === 0) ? String(cx + sg*parseFloat(n)) : n); }
-// age-shaped body outlines for the Lund & Browder map (left half drawn at x<0; mirrored for the right)
+// Lund & Browder chart-style figures. Left half drawn at x<0 (mirrored for the right). Space: 150 wide per figure, y 4..229.
 const LB_BODY = {
-  //        head  neck trunk  head-w  shoulder waist hip  arm  thigh calf  hand  wrist  leg-gap
-  baby:    {h:.255, n:.02, t:.33, rx:.95, sw:27, ww:29, hw:27, aw:11, kw:15, cw:11, hd:.055, wr:-.03, g:1.5, label:"baby"},
-  toddler: {h:.205, n:.025,t:.305,rx:.86, sw:25, ww:24, hw:23, aw:9.5,kw:13, cw:9.5,hd:.055, wr:0,    g:2,   label:"toddler"},
-  child:   {h:.165, n:.035,t:.29, rx:.8,  sw:23.5, ww:18.5, hw:19.5, aw:8,  kw:11.5,cw:8.5,hd:.06, wr:.02,  g:2.5, label:"child"},
-  teen:    {h:.135, n:.04, t:.3,  rx:.76, sw:27, ww:19, hw:21, aw:8,  kw:11.5,cw:8.5,hd:.065,wr:.035, g:2.5, label:"teenager"}
+  //        head  neck   trunk  head-w shoulder waist hip  arm  thigh calf  hand  wrist  gap
+  baby:    {h:.25, n:.018, t:.30, rx:.92, sw:24, ww:23, hw:22, aw:10.5,kw:14, cw:10.5,hd:.06, wr:0,   g:2,   pose:"lying", label:"baby"},
+  toddler: {h:.205,n:.025, t:.305,rx:.86, sw:24, ww:22.5,hw:22.5,aw:9.5,kw:13,  cw:9.5, hd:.055,wr:0,   g:2,   label:"toddler"},
+  child:   {h:.165,n:.035, t:.29, rx:.8,  sw:23.5,ww:18, hw:19.5,aw:8,  kw:11.5,cw:8.5, hd:.06, wr:.02, g:2.5, label:"child"},
+  teen:    {h:.135,n:.04,  t:.3,  rx:.76, sw:27, ww:18.5,hw:21, aw:8.2,kw:11.5,cw:8.5, hd:.065,wr:.035,g:2.5, label:"teenager"}
 };
 function lbShapeKey(ageM){ return ageM == null || ageM >= 120 ? "teen" : ageM < 12 ? "baby" : ageM < 60 ? "toddler" : "child"; }
 const LB_PCACHE = {};
 function lbBodyPaths(key){
   if (LB_PCACHE[key]) return LB_PCACHE[key];
-  const s = LB_BODY[key], y0 = 4, yB = 229, H = yB - y0, r = v => Math.round(v*10)/10;
-  const hy = y0 + H*s.h, ry = H*s.h/2, rx = ry*s.rx, hcy = y0 + ry;
-  const nb = hy + H*s.n, nw = Math.max(6, rx*0.42);
-  const T = H*s.t, cy = nb + T;
-  const fh = H*(key==="baby" ? .05 : .055), ky = yB - fh, kn = cy + (ky-cy)*0.5;
-  const sw = s.sw, ww = s.ww, hw = s.hw, aw = s.aw, g = s.g, kw = s.kw, cw = s.cw;
+  const s = LB_BODY[key], lying = s.pose === "lying";
+  const y0 = 4, yB = lying ? 222 : 229, H = (lying ? 200 : yB - y0), r = v => Math.round(v*10)/10;
   const P = (...a) => a.map(v => typeof v === "number" ? r(v) : v).join(" ");
-  // trunk (full outline, symmetrical)
-  const cx_ = 2*ww - 0.5*(sw+hw), cyc = nb + T*0.5, y1 = cy - T*0.12;   // control point so the waist is ww wide
-  const trunk = P("M", -nw, nb, "Q", -sw+3, nb, -sw, nb+5,
-    "Q", -cx_, cyc, -hw, y1, "L", -hw, cy, "L", hw, cy, "L", hw, y1,
-    "Q", cx_, cyc, sw, nb+5, "Q", sw-3, nb, nw, nb, "Z");
-  const neck = P("M", -nw, hy-4, "L", nw, hy-4, "L", nw+1, nb+1, "L", -nw-1, nb+1, "Z");
-  // arm hangs beside the body: shoulder → elbow → wrist
-  const shY = nb + 4, wY = cy + H*s.wr, eY = shY + (wY-shY)*0.48;
-  const tW = y => { if (y >= y1) return hw; let best = sw, bd = 1e9;   // half-width of the trunk at height y
-    for (let t = 0; t <= 1; t += 0.02){ const yy = (1-t)**2*(nb+5) + 2*t*(1-t)*cyc + t*t*y1, xx = (1-t)**2*sw + 2*t*(1-t)*cx_ + t*t*hw;
+  const hy = y0 + H*s.h, ry = H*s.h/2, rx = ry*s.rx, hcy = y0 + ry;
+  const nb = hy + H*s.n, nw = Math.max(5.5, rx*0.4);
+  const T = H*s.t, cy = nb + T;
+  const sw = s.sw, ww = s.ww, hw = s.hw, aw = s.aw, g = s.g, kw = s.kw, cw = s.cw;
+  // ---- limb segment: tapered, slightly muscled, rounded far end (and near end unless flat) ----
+  const seg = (ax, ay, bx, by, wa, wb, o = {}) => {
+    const L = Math.hypot(bx-ax, by-ay), ux = (bx-ax)/L, uy = (by-ay)/L, nx = -uy, ny = ux, bo = o.bulgeOut ?? 0.12, bi = o.bulgeIn ?? 0.06;
+    const pt = (x, y, n, u) => [x + nx*n + ux*u, y + ny*n + uy*u];
+    const A1 = pt(ax,ay, wa/2,0), A2 = pt(ax,ay,-wa/2,0), B1 = pt(bx,by, wb/2,0), B2 = pt(bx,by,-wb/2,0);
+    const m1 = pt((ax+bx)/2,(ay+by)/2, (wa+wb)/4 + (wa+wb)*bo/2, -L*0.08), m2 = pt((ax+bx)/2,(ay+by)/2, -(wa+wb)/4 - (wa+wb)*bi/2, -L*0.08);
+    const c1 = pt(bx,by, wb/2, wb*0.55), c2 = pt(bx,by,-wb/2, wb*0.55), d1 = pt(ax,ay,-wa/2,-wa*0.55), d2 = pt(ax,ay, wa/2,-wa*0.55);
+    return P("M", ...A1, "Q", ...m1, ...B1, "C", ...c1, ...c2, ...B2, "Q", ...m2, ...A2,
+      ...(o.flat ? ["Z"] : ["C", ...d1, ...d2, ...A1, "Z"]));
+  };
+  // hand: mitten with fingers and a thumb on one side (thumbSide +1/-1 relative to segment normal)
+  const handP = (ax, ay, dx, dy, w, len, thumbSide) => {
+    const L = Math.hypot(dx,dy), ux = dx/L, uy = dy/L, nx = -uy, ny = ux;
+    const pt = (n, u) => [ax + nx*n + ux*u, ay + ny*n + uy*u], t = thumbSide;
+    if (!thumbSide) return P("M", ...pt(w/2,0), "Q", ...pt(w*0.62,len*0.4), ...pt(w*0.5,len*0.8),
+      "C", ...pt(w*0.42,len*1.08), ...pt(-w*0.42,len*1.08), ...pt(-w*0.5,len*0.8), "Q", ...pt(-w*0.62,len*0.4), ...pt(-w/2,0), "Z");
+    // one outline: thumb side out to the thumb tip and back, round the fingers, down the other side
+    return P("M", ...pt(t*w/2,0), "Q", ...pt(t*w*0.85,len*0.12), ...pt(t*w*1.05,len*0.42),
+      "Q", ...pt(t*w*1.08,len*0.62), ...pt(t*w*0.85,len*0.6), "Q", ...pt(t*w*0.62,len*0.52), ...pt(t*w*0.55,len*0.62),
+      "Q", ...pt(t*w*0.58,len*0.9), ...pt(t*w*0.4,len*1.02), "C", ...pt(t*w*0.2,len*1.12), ...pt(-t*w*0.3,len*1.1), ...pt(-t*w*0.48,len*0.88),
+      "Q", ...pt(-t*w*0.6,len*0.4), ...pt(-t*w/2,0), "Z");
+  };
+  const out = {};
+  out.neck = P("M", -nw, hy-5, "Q", -nw+1, (hy+nb)/2, -nw-1.5, nb+1.5, "L", nw+1.5, nb+1.5, "Q", nw-1, (hy+nb)/2, nw, hy-5, "Z");
+  // ---- trunk: trapezius slope, shoulder, armpit, chest, waist, hip, inguinal line ----
+  const shY = nb + H*0.012 + 2, apY = shY + aw*1.35, wY = nb + T*0.55, hipY = cy - T*0.09;
+  const cxw = 2*ww - 0.5*(sw - aw*0.35 + hw);   // control so the waist is ww wide
+  const half = sg => ({ n:[sg*(nw+0.5), nb], c1:[sg*(nw+4), nb+1], c2:[sg*(sw-6), shY-2.5], sh:[sg*(sw-2.5), shY],
+    q1:[sg*(sw+0.5), shY+aw*0.6], ap:[sg*(sw-aw*0.35), apY], qw:[sg*cxw, wY], hip:[sg*hw, hipY], qi:[sg*hw*0.55, cy-T*0.02], cr:[sg*2, cy+2] });
+  const Lh = half(-1), Rh = half(1);
+  out.trunk = P("M", ...Lh.n, "C", ...Lh.c1, ...Lh.c2, ...Lh.sh, "Q", ...Lh.q1, ...Lh.ap, "Q", ...Lh.qw, ...Lh.hip,
+    "Q", ...Lh.qi, ...Lh.cr, "L", ...Rh.cr, "Q", ...Rh.qi, ...Rh.hip, "Q", ...Rh.qw, ...Rh.ap, "Q", ...Rh.q1, ...Rh.sh,
+    "C", ...Rh.c2, ...Rh.c1, ...Rh.n, "Z");
+  // trunk half-width at height y (for placing hanging arms)
+  const tW = y => { if (y >= hipY) return hw; if (y <= apY) return sw - aw*0.35; let best = ww, bd = 1e9;
+    for (let t = 0; t <= 1; t += 0.02){ const yy = (1-t)**2*apY + 2*t*(1-t)*wY + t*t*hipY, xx = (1-t)**2*(sw-aw*0.35) + 2*t*(1-t)*cxw + t*t*hw;
       if (Math.abs(yy-y) < bd){ bd = Math.abs(yy-y); best = xx; } } return best; };
-  const aE = -Math.max(tW(eY) + 1.5 + aw/2, sw + aw*0.2), aWr = -Math.max(hw + 1.5 + aw*0.42, sw + aw*0.05);
-  const uarm = P("M", -sw+3, shY-3, "Q", -sw-aw*0.9, shY-3, aE-aw/2, shY+aw*0.9, "L", aE-aw/2, eY, "L", aE+aw/2, eY,
-    "Q", aE+aw/2, shY+aw, -sw+3, shY+aw*0.7, "Z");
-  const law = aw*0.84;
-  const larm = P("M", aE-aw/2, eY, "L", aE+aw/2, eY, "L", aWr+law/2, wY, "L", aWr-law/2, wY, "Z");
-  const hl = H*s.hd, hwid = law*1.15;
-  const hand = P("M", aWr-law/2, wY, "L", aWr+law/2, wY, "Q", aWr+hwid/2+1, wY+hl*0.6, aWr+hwid*0.25, wY+hl,
-    "Q", aWr-hwid*0.1, wY+hl*1.15, aWr-hwid/2-0.5, wY+hl*0.8, "Q", aWr-hwid/2-1.5, wY+hl*0.35, aWr-law/2, wY, "Z");
-  // legs
-  const thighF = P("M", -hw, cy, "L", 0, cy, "L", -g, kn, "L", -g-kw, kn, "Q", -hw-1.5, cy+(kn-cy)*0.45, -hw, cy, "Z");
-  const gs = key==="baby" ? 5 : 4, gl = H*0.035;
-  const genit = P("M", -gs, cy, "L", gs, cy, "L", gs*0.7, cy+gl, "Q", 0, cy+gl+3, -gs*0.7, cy+gl, "Z");
-  const bl = (kn-cy)*0.32;
-  const butt = P("M", -hw, cy, "L", 0, cy, "L", 0, cy+bl, "Q", -hw*0.5, cy+bl+5, -hw-1, cy+bl-1, "Z");
-  const thighB = P("M", -hw-1, cy+bl-1, "Q", -hw*0.5, cy+bl+5, 0, cy+bl, "L", -g, kn, "L", -g-kw, kn, "Q", -hw-1.5, cy+(kn-cy)*0.6, -hw-1, cy+bl-1, "Z");
-  const an = cw*0.62;
-  const leg = P("M", -g-kw, kn, "L", -g, kn, "L", -g-0.5, ky, "L", -g-0.5-an, ky, "Q", -g-kw-0.5, kn+(ky-kn)*0.35, -g-kw, kn, "Z");
-  const fw = an*1.35;
-  const foot = P("M", -g-0.5-an, ky, "L", -g-0.5, ky, "Q", -g+0.5, ky+fh*0.5, -g, yB, "L", -g-0.5-fw, yB, "Q", -g-1-fw, ky+fh*0.45, -g-0.5-an, ky, "Z");
-  return LB_PCACHE[key] = { neck, trunk, uarm, larm, hand, thighF, genit, butt, thighB, leg, foot, head:{cy:hcy, rx, ry} };
+  const jx = -(sw - aw*0.25), jy = shY + aw*0.45;   // shoulder joint
+  let E, W, K, A, hipJ;
+  if (!lying){
+    const wristY = cy + H*s.wr, eY = jy + (wristY - jy)*0.47;
+    E = [-Math.max(tW(eY) + 1.5 + aw*0.42, sw + aw*0.1), eY];
+    W = [-Math.max(hw + 1.5 + aw*0.32, sw + aw*0.0), wristY];
+  } else {   // baby lying on its back: arms up beside the head, elbows bent
+    E = [jx - aw*2.1, jy + aw*0.2];
+    W = [E[0] + aw*0.3, E[1] - aw*2.0];
+  }
+  out.uarm = seg(jx, jy, E[0], E[1], aw*1.12, aw*0.8, {bulgeOut:0.14, bulgeIn:0.04});
+  out.larm = seg(E[0], E[1], W[0], W[1], aw*0.86, aw*0.6, {bulgeOut:0.12, bulgeIn:0.06});
+  const hl = H*s.hd*(lying?1.1:1), hdx = W[0]-E[0], hdy = W[1]-E[1];
+  out.hand = handP(W[0], W[1], hdx, hdy, aw*0.8, hl, lying ? 1 : -1);
+  // ---- legs ----
+  const gs = lying ? 4.5 : 4, gl = H*0.035;
+  out.genit = P("M", -gs, cy-1, "Q", 0, cy-3, gs, cy-1, "L", gs*0.75, cy+gl, "Q", 0, cy+gl+3.5, -gs*0.75, cy+gl, "Z");
+  if (!lying){
+    const fh = H*0.055, ky = yB - fh, kn = cy + (ky-cy)*0.5, an = cw*0.6;
+    out.thighF = P("M", -hw, hipY, "Q", -hw*0.55, cy-T*0.02, -2, cy+2, "Q", -g+0.5, cy+(kn-cy)*0.5, -g, kn,
+      "Q", -g-kw*0.5, kn+2.5, -g-kw, kn, "C", -hw-2, cy+(kn-cy)*0.55, -hw-1.5, cy+(kn-cy)*0.15, -hw, hipY, "Z");
+    const bl = (kn-cy)*0.3;
+    out.butt = P("M", -hw-0.5, hipY, "Q", -hw*0.55, cy-T*0.04, 0, cy-T*0.06, "L", 0, cy+bl, "Q", -hw*0.55, cy+bl+6, -hw-1.5, cy+bl-2, "Q", -hw-1.5, hipY+4, -hw-0.5, hipY, "Z");
+    out.thighB = out.thighF;
+    const ky2 = ky;
+    out.leg = P("M", -g-kw, kn, "Q", -g-kw*0.5, kn+2.5, -g, kn, "Q", -g+0.5, kn+(ky2-kn)*0.5, -g-0.5, ky2,
+      "L", -g-0.5-an, ky2, "C", -g-an-1, kn+(ky2-kn)*0.7, -g-kw-2, kn+(ky2-kn)*0.35, -g-kw, kn, "Z");
+    const fw = an*1.5;
+    out.foot = P("M", -g-0.5-an, ky2-1, "L", -g-0.5, ky2-1, "Q", -g+0.5, ky2+fh*0.6, -g-1, yB,
+      "C", -g-fw*0.5, yB+1.5, -g-fw-1, yB+0.5, -g-fw-1.5, yB-fh*0.3, "Q", -g-an-1.5, ky2+fh*0.25, -g-0.5-an, ky2-1, "Z");
+  } else {   // frog-leg: hips out, knees bent, soles towards each other
+    hipJ = [-hw*0.5, cy - 7];
+    const tl = H*0.22, ll = H*0.17;
+    K = [hipJ[0] - tl*0.72, hipJ[1] + tl*0.7];
+    A = [K[0] + ll*0.45, K[1] + ll*0.88];
+    out.thighF = seg(hipJ[0], hipJ[1], K[0], K[1], kw*1.65, kw*1.0, {flat:true, bulgeOut:0.14, bulgeIn:0.1});
+    out.butt = P("M", -hw-0.5, hipY-8, "Q", -hw*0.5, hipY-4, 0, hipY-5, "L", 0, cy+9, "Q", -hw*0.55, cy+17, -hw-1.5, cy+6, "Q", -hw-2.5, hipY, -hw-0.5, hipY-8, "Z");
+    out.thighB = out.thighF;
+    out.leg = seg(K[0], K[1], A[0], A[1], kw*1.0, cw*0.7, {bulgeOut:0.16, bulgeIn:0.04});
+    const fl = H*0.085, fdx = 0.9, fdy = 0.45;
+    out.foot = handP(A[0], A[1], fdx, fdy, cw*0.8, fl, 0);   // foot: rounded paddle
+  }
+  out.head = {cy:hcy, rx, ry};
+  return LB_PCACHE[key] = out;
 }
 function lbRegions(ageM){
   const [, A, B, C] = lbBand(ageM ?? 0), R = [], LB_P = lbBodyPaths(lbShapeKey(ageM)), hd = LB_P.head;
@@ -460,8 +510,9 @@ function lbRegions(ageM){
     both("larm", `lower arm (${fb})`, 1.5);
     both("hand", `hand (${F?"palm":"back"})`, 1.25);
     if (F){ both("thighF", "thigh (front)", B); R.push([v+"genit","Genitalia",1,lbMirror(LB_P.genit, cx, 1)]); }
-    else { R.push([v+"buttL","Left buttock",2.5,lbMirror(LB_P.butt, cx, 1)]); R.push([v+"buttR","Right buttock",2.5,lbMirror(LB_P.butt, cx, -1)]); both("thighB", "thigh (back)", B); }
+    else both("thighB", "thigh (back)", B);
     both("leg", `lower leg (${fb})`, C);
+    if (!F){ R.push([v+"buttL","Left buttock",2.5,lbMirror(LB_P.butt, cx, 1)]); R.push([v+"buttR","Right buttock",2.5,lbMirror(LB_P.butt, cx, -1)]); }   // after thighs so the buttocks sit on top
     both("foot", `foot (${F?"top":"sole"})`, 1.75);
   };
   fig("front", 75); fig("back", 225);
@@ -526,7 +577,9 @@ function lbWire(i, ctx){
   const base = box.querySelector(".lbbase"), paint = box.querySelector(".lbpaint"); if (!base) return;
   lbBuildIdMap(ctx.ageM);
   const regs = lbRegions(ctx.ageM), b = base.getContext("2d"), pc = paint.getContext("2d", {willReadFrequently:true});
-  const body = new Path2D(); regs.forEach(r => body.addPath(lbPath(r[3])));
+  // paint mask = exactly the pixels that belong to a body region (a combined clip path leaves holes where shapes overlap)
+  const mask = document.createElement("canvas"); mask.width = LB_W; mask.height = LB_H;
+  { const mx = mask.getContext("2d"), mi = mx.createImageData(LB_W, LB_H); for (let q=0, j=3; q<LB_ID.length; q++, j+=4) if (LB_ID[q] >= 0) mi.data[j] = 255; mx.putImageData(mi, 0, 0); }
   // base: white body with outlines and labels
   b.fillStyle = "#fff"; b.strokeStyle = "#8a7a70"; b.lineWidth = 1.5;
   regs.forEach(r => { const p = lbPath(r[3]); b.fill(p); b.stroke(p); });
@@ -549,10 +602,12 @@ function lbWire(i, ctx){
   const pos = e => { const rc = paint.getBoundingClientRect(); return [(e.clientX-rc.left)*LB_W/rc.width, (e.clientY-rc.top)*LB_H/rc.height]; };
   let drawing = false, last = null; const hist = [];
   const snap = () => { hist.push(pc.getImageData(0,0,LB_W,LB_H)); if (hist.length > 30) hist.shift(); };
-  const stroke = (a, z) => { pc.save(); pc.clip(body);
+  const stroke = (a, z) => { pc.save();
     pc.globalCompositeOperation = LB_TOOL.mode==="erase" ? "destination-out" : "source-over";
     pc.strokeStyle = pc.fillStyle = `rgb(${LB_DEPTH[LB_TOOL.depth].rgb.join(",")})`; pc.lineWidth = LB_TOOL.size*LB_S; pc.lineCap = pc.lineJoin = "round";
-    pc.beginPath(); pc.moveTo(a[0], a[1]); pc.lineTo(z[0], z[1]); pc.stroke(); pc.restore(); };
+    pc.beginPath(); pc.moveTo(a[0], a[1]); pc.lineTo(z[0], z[1]); pc.stroke();
+    if (LB_TOOL.mode !== "erase"){ pc.globalCompositeOperation = "destination-in"; pc.drawImage(mask, 0, 0); }   // keep paint on the body only
+    pc.restore(); };
   paint.onpointerdown = e => { e.preventDefault(); const p = pos(e);
     if (LB_TOOL.mode === "fill" || LB_TOOL.mode === "clearreg"){ const k = LB_ID[Math.floor(p[1])*LB_W + Math.floor(p[0])];
       if (k >= 0){ snap();   // fill or wipe exactly that region's pixels, so neighbours (e.g. genitalia) are untouched
