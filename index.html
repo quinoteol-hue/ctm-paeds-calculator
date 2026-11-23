@@ -281,6 +281,8 @@ const SRC = {
   ukhsaTet:["UKHSA tetanus-prone wound guidance (updated Aug 2026)", "https://www.gov.uk/government/publications/tetanus-advice-for-health-professionals/guidance-on-the-management-of-suspected-tetanus-cases-and-the-assessment-and-management-of-tetanus-prone-wounds"],
   greenTet:["Green Book chapter 30: tetanus", "https://www.gov.uk/government/publications/tetanus-the-green-book-chapter-30"],
   lsebn:   ["LSEBN initial management of severe burns", "https://lsebn.nhs.uk/_common/getdocument?id=391625"],
+  lsebnTss:["LSEBN paediatric burns & toxic shock syndrome guideline (Jan 2026)", "https://lsebn.nhs.uk/_common/getdocument?id=396469"],
+  swukBurns:["SWUK Children's Burns Centre, Bristol: referral & toxic shock advice", "https://www.uhbristol.nhs.uk/media/3181387/paedburnsreferralposter_-_apr14.pdf"],
   cobis:   ["COBIS paediatric burns ED poster (2024)", "https://www.nn.nhs.scot/cobis/wp-content/uploads/sites/9/2024/11/NSD610-006.19-ED-poster-Paed-burns-v2.pdf"],
   evelinaBurns:["STRS burns early management", "https://www.evelinalondon.nhs.uk/resources/our-services/hospital/south-thames-retrieval-service/Burns.pdf"],
   bwcHyperK:["Birmingham Children's hyperkalaemia guideline", "https://kids.bwc.nhs.uk/wp-content/uploads/2023/10/Hyperkalaemia-Management-Guidelines-for-BWC.pdf"],
@@ -393,39 +395,61 @@ const LB_AGE = [ // [maxAgeMonths(excl), A=½ head, B=½ one thigh, C=½ one low
   [12, 9.5, 2.75, 2.5, "under 1 year"], [60, 8.5, 3.25, 2.5, "1–4 years"], [120, 6.5, 4, 2.75, "5–9 years"],
   [180, 5.5, 4.25, 3, "10–14 years"], [99999, 4.5, 4.5, 3.25, "15 years and over"] ];
 function lbBand(ageM){ return LB_AGE.find(b => ageM < b[0]); }
-// realistic outline in a 300 × 240 space; each region is an SVG path string
 function lbMirror(str, cx, sg){ let i = 0; return str.replace(/-?\d+(\.\d+)?/g, n => (i++ % 2 === 0) ? String(cx + sg*parseFloat(n)) : n); }
-const LB_P_STD = {
-  neck:  "M -6 33 L 6 33 L 7 43 L -7 43 Z",
-  trunk: "M -7 43 Q -20 43 -26 47 L -24 70 Q -20 90 -21 104 Q -23 112 -22 120 L 22 120 Q 23 112 21 104 Q 20 90 24 70 L 26 47 Q 20 43 7 43 Z",
-  uarm:  "M -26 47 Q -35 46 -37 56 L -40 86 L -30 88 L -24 70 Z",
-  larm:  "M -40 86 L -30 88 L -32 118 L -42 117 Z",
-  hand:  "M -42 117 L -32 118 Q -30 126 -33 133 Q -37 139 -41 135 Q -45 126 -42 117 Z",
-  thighF:"M -22 120 L 0 120 L -3 166 L -20 166 Q -23 142 -22 120 Z",
-  genit: "M -4 120 L 4 120 L 3 129 Q 0 133 -3 129 Z",
-  butt:  "M -22 120 L 0 120 L 0 133 Q -11 137 -23 132 Z",
-  thighB:"M -23 132 Q -11 137 0 133 L -3 166 L -20 166 Q -23 150 -23 132 Z",
-  leg:   "M -20 166 L -3 166 L -5 214 L -17 214 Q -20 190 -20 166 Z",
-  foot:  "M -17 214 L -5 214 Q -3 222 -4 229 L -22 229 Q -23 220 -17 214 Z"
+// age-shaped body outlines for the Lund & Browder map (left half drawn at x<0; mirrored for the right)
+const LB_BODY = {
+  //        head  neck trunk  head-w  shoulder waist hip  arm  thigh calf  hand  wrist  leg-gap
+  baby:    {h:.255, n:.02, t:.33, rx:.95, sw:27, ww:29, hw:27, aw:11, kw:15, cw:11, hd:.055, wr:-.03, g:1.5, label:"baby"},
+  toddler: {h:.205, n:.025,t:.305,rx:.86, sw:25, ww:24, hw:23, aw:9.5,kw:13, cw:9.5,hd:.055, wr:0,    g:2,   label:"toddler"},
+  child:   {h:.165, n:.035,t:.29, rx:.8,  sw:23.5, ww:18.5, hw:19.5, aw:8,  kw:11.5,cw:8.5,hd:.06, wr:.02,  g:2.5, label:"child"},
+  teen:    {h:.135, n:.04, t:.3,  rx:.76, sw:27, ww:19, hw:21, aw:8,  kw:11.5,cw:8.5,hd:.065,wr:.035, g:2.5, label:"teenager"}
 };
-// baby outline (under 1 year): big head, short neck, round trunk, short chubby limbs
-const LB_P_BABY = {
-  neck:  "M -9 51 L 9 51 L 10 57 L -10 57 Z",
-  trunk: "M -10 57 Q -24 57 -29 62 Q -32 85 -30 100 Q -30 112 -27 118 L 27 118 Q 30 112 30 100 Q 32 85 29 62 Q 24 57 10 57 Z",
-  uarm:  "M -29 62 Q -40 62 -42 72 L -44 90 L -33 92 Q -31 80 -30 75 Z",
-  larm:  "M -44 90 L -33 92 L -34 112 L -45 111 Z",
-  hand:  "M -45 111 L -34 112 Q -32 119 -35 124 Q -40 129 -44 125 Q -48 118 -45 111 Z",
-  thighF:"M -27 118 L 0 118 L -3 158 L -24 158 Q -30 138 -27 118 Z",
-  genit: "M -5 118 L 5 118 L 4 127 Q 0 131 -4 127 Z",
-  butt:  "M -27 118 L 0 118 L 0 131 Q -13 136 -28 130 Z",
-  thighB:"M -28 130 Q -13 136 0 131 L -3 158 L -24 158 Q -29 145 -28 130 Z",
-  leg:   "M -24 158 L -3 158 L -5 192 L -20 192 Q -25 175 -24 158 Z",
-  foot:  "M -20 192 L -5 192 Q -3 199 -4 205 L -24 205 Q -25 197 -20 192 Z"
-};
-const lbIsBaby = ageM => ageM != null && ageM < 12;
+function lbShapeKey(ageM){ return ageM == null || ageM >= 120 ? "teen" : ageM < 12 ? "baby" : ageM < 60 ? "toddler" : "child"; }
+const LB_PCACHE = {};
+function lbBodyPaths(key){
+  if (LB_PCACHE[key]) return LB_PCACHE[key];
+  const s = LB_BODY[key], y0 = 4, yB = 229, H = yB - y0, r = v => Math.round(v*10)/10;
+  const hy = y0 + H*s.h, ry = H*s.h/2, rx = ry*s.rx, hcy = y0 + ry;
+  const nb = hy + H*s.n, nw = Math.max(6, rx*0.42);
+  const T = H*s.t, cy = nb + T;
+  const fh = H*(key==="baby" ? .05 : .055), ky = yB - fh, kn = cy + (ky-cy)*0.5;
+  const sw = s.sw, ww = s.ww, hw = s.hw, aw = s.aw, g = s.g, kw = s.kw, cw = s.cw;
+  const P = (...a) => a.map(v => typeof v === "number" ? r(v) : v).join(" ");
+  // trunk (full outline, symmetrical)
+  const cx_ = 2*ww - 0.5*(sw+hw), cyc = nb + T*0.5, y1 = cy - T*0.12;   // control point so the waist is ww wide
+  const trunk = P("M", -nw, nb, "Q", -sw+3, nb, -sw, nb+5,
+    "Q", -cx_, cyc, -hw, y1, "L", -hw, cy, "L", hw, cy, "L", hw, y1,
+    "Q", cx_, cyc, sw, nb+5, "Q", sw-3, nb, nw, nb, "Z");
+  const neck = P("M", -nw, hy-4, "L", nw, hy-4, "L", nw+1, nb+1, "L", -nw-1, nb+1, "Z");
+  // arm hangs beside the body: shoulder → elbow → wrist
+  const shY = nb + 4, wY = cy + H*s.wr, eY = shY + (wY-shY)*0.48;
+  const tW = y => { if (y >= y1) return hw; let best = sw, bd = 1e9;   // half-width of the trunk at height y
+    for (let t = 0; t <= 1; t += 0.02){ const yy = (1-t)**2*(nb+5) + 2*t*(1-t)*cyc + t*t*y1, xx = (1-t)**2*sw + 2*t*(1-t)*cx_ + t*t*hw;
+      if (Math.abs(yy-y) < bd){ bd = Math.abs(yy-y); best = xx; } } return best; };
+  const aE = -Math.max(tW(eY) + 1.5 + aw/2, sw + aw*0.2), aWr = -Math.max(hw + 1.5 + aw*0.42, sw + aw*0.05);
+  const uarm = P("M", -sw+3, shY-3, "Q", -sw-aw*0.9, shY-3, aE-aw/2, shY+aw*0.9, "L", aE-aw/2, eY, "L", aE+aw/2, eY,
+    "Q", aE+aw/2, shY+aw, -sw+3, shY+aw*0.7, "Z");
+  const law = aw*0.84;
+  const larm = P("M", aE-aw/2, eY, "L", aE+aw/2, eY, "L", aWr+law/2, wY, "L", aWr-law/2, wY, "Z");
+  const hl = H*s.hd, hwid = law*1.15;
+  const hand = P("M", aWr-law/2, wY, "L", aWr+law/2, wY, "Q", aWr+hwid/2+1, wY+hl*0.6, aWr+hwid*0.25, wY+hl,
+    "Q", aWr-hwid*0.1, wY+hl*1.15, aWr-hwid/2-0.5, wY+hl*0.8, "Q", aWr-hwid/2-1.5, wY+hl*0.35, aWr-law/2, wY, "Z");
+  // legs
+  const thighF = P("M", -hw, cy, "L", 0, cy, "L", -g, kn, "L", -g-kw, kn, "Q", -hw-1.5, cy+(kn-cy)*0.45, -hw, cy, "Z");
+  const gs = key==="baby" ? 5 : 4, gl = H*0.035;
+  const genit = P("M", -gs, cy, "L", gs, cy, "L", gs*0.7, cy+gl, "Q", 0, cy+gl+3, -gs*0.7, cy+gl, "Z");
+  const bl = (kn-cy)*0.32;
+  const butt = P("M", -hw, cy, "L", 0, cy, "L", 0, cy+bl, "Q", -hw*0.5, cy+bl+5, -hw-1, cy+bl-1, "Z");
+  const thighB = P("M", -hw-1, cy+bl-1, "Q", -hw*0.5, cy+bl+5, 0, cy+bl, "L", -g, kn, "L", -g-kw, kn, "Q", -hw-1.5, cy+(kn-cy)*0.6, -hw-1, cy+bl-1, "Z");
+  const an = cw*0.62;
+  const leg = P("M", -g-kw, kn, "L", -g, kn, "L", -g-0.5, ky, "L", -g-0.5-an, ky, "Q", -g-kw-0.5, kn+(ky-kn)*0.35, -g-kw, kn, "Z");
+  const fw = an*1.35;
+  const foot = P("M", -g-0.5-an, ky, "L", -g-0.5, ky, "Q", -g+0.5, ky+fh*0.5, -g, yB, "L", -g-0.5-fw, yB, "Q", -g-1-fw, ky+fh*0.45, -g-0.5-an, ky, "Z");
+  return LB_PCACHE[key] = { neck, trunk, uarm, larm, hand, thighF, genit, butt, thighB, leg, foot, head:{cy:hcy, rx, ry} };
+}
 function lbRegions(ageM){
-  const [, A, B, C] = lbBand(ageM ?? 0), R = [], baby = lbIsBaby(ageM), LB_P = baby ? LB_P_BABY : LB_P_STD;
-  const head = cx => baby ? `M ${cx-20} 29 A 20 22 0 1 1 ${cx+20} 29 A 20 22 0 1 1 ${cx-20} 29 Z` : `M ${cx-13} 20 A 13 15 0 1 1 ${cx+13} 20 A 13 15 0 1 1 ${cx-13} 20 Z`;
+  const [, A, B, C] = lbBand(ageM ?? 0), R = [], LB_P = lbBodyPaths(lbShapeKey(ageM)), hd = LB_P.head;
+  const head = cx => `M ${cx-hd.rx} ${hd.cy} A ${hd.rx} ${hd.ry} 0 1 1 ${cx+hd.rx} ${hd.cy} A ${hd.rx} ${hd.ry} 0 1 1 ${cx-hd.rx} ${hd.cy} Z`;
   const fig = (v, cx) => {
     const F = v==="front", sL = F?"Right":"Left", sR = F?"Left":"Right", fb = F?"front":"back";
     const both = (key, nm, pct) => { R.push([v+key+"A", `${sL} ${nm}`, pct, lbMirror(LB_P[key], cx, 1)]); R.push([v+key+"B", `${sR} ${nm}`, pct, lbMirror(LB_P[key], cx, -1)]); };
@@ -452,7 +476,7 @@ function lbClass(r,g,b){ let best=null, bd=1e9; for (const k in LB_DEPTH){ const
 let LB_ID = null, LB_SHAPE = null;           // region index map: Int16Array of LB_W*LB_H (-1 = outside body)
 let LB_AREA = null;         // pixel count per region
 function lbBuildIdMap(ageM){
-  const shape = lbIsBaby(ageM) ? "baby" : "std";
+  const shape = lbShapeKey(ageM);
   if (LB_ID && LB_SHAPE === shape) return;
   if (LB_SHAPE && LB_SHAPE !== shape) LB_PAINT = null;   // outline changed: old colouring no longer fits
   LB_SHAPE = shape;
@@ -478,7 +502,7 @@ function lbTotals(ageM){ const z={pt:0,ft:0,tot:0}; if (ageM==null || !LB_ID) re
 function lbTotal(ageM){ return lbTotals(ageM).tot; }
 function lbHtml(ctx){
   if (ctx.ageM == null) return `<div class="alert warn">Enter the child's age above: head, thigh and lower-leg percentages change with age.</div>`;
-  return `<div class="note">Pick the depth, then colour the burnt areas with your finger, as on a paper chart. Only <b>partial</b> and <b>full thickness</b> count towards % TBSA; erythema is shown but not counted. To correct a mistake: <b>Undo</b> the last change, <b>Erase</b> with your finger, <b>Clear region</b> (tap a body part to wipe it), or colour over it with another depth. Age band: <b>${lbBand(ctx.ageM)[4]}</b>${lbIsBaby(ctx.ageM) ? " (baby outline)" : ""}.</div>
+  return `<div class="note">Pick the depth, then colour the burnt areas with your finger, as on a paper chart. Only <b>partial</b> and <b>full thickness</b> count towards % TBSA; erythema is shown but not counted. To correct a mistake: <b>Undo</b> the last change, <b>Erase</b> with your finger, <b>Clear region</b> (tap a body part to wipe it), or colour over it with another depth. Age band: <b>${lbBand(ctx.ageM)[4]}</b> (${LB_BODY[lbShapeKey(ctx.ageM)].label} body shape).</div>
     <div class="lbtools lbdepth">
       ${Object.entries(LB_DEPTH).map(([k,v])=>`<button type="button" data-depth="${k}" class="${LB_TOOL.depth===k?"on":""}"><i style="background:rgb(${v.rgb.join(",")})"></i>${v.label}</button>`).join("")}
     </div>
@@ -719,15 +743,36 @@ const SCEN = [
  ]},
  { id:"burns", name:"Burns", src:["lsebn","w_burns"], drugs:[
    { name:"Body map: colour the burn (Lund & Browder)", info: ctx => lbHtml(ctx), wire: (i, ctx) => lbWire(i, ctx), src:["lbChart","lbChart2"]},
-   { name:"Burns fluid resuscitation (Parkland)", inputs:[{id:"tbsa", label:"Burn area (% TBSA)", type:"number", def:""}],
+   { name:"Burns fluid resuscitation (Parkland), step by step", inputs:[
+       {id:"tbsa", label:"Burn area (% TBSA, from the body map)", type:"number", def:""},
+       {id:"hrs", label:"Hours since the burn happened", type:"number", def:""}],
      htmlFn: (ctx, v) => {
-       const t = parseFloat(v.tbsa);
-       if (!(t>0)) return `<div class="note">Enter the % TBSA (exclude simple erythema). Children with 10% or more usually need IV resuscitation fluid.</div>`;
-       if (t < 10) return `<div class="alert ok">Under 10% TBSA: IV resuscitation fluid isn't usually needed. Give maintenance/oral fluids and analgesia.</div>`;
-       const tot = 3*ctx.wt*t, mh = hsDay(ctx.wt)/24;
-       return bigline(`${fmt(tot)} mL`, "in 24 h from the time of the burn (3 mL × kg × %TBSA, warmed Hartmann's)") +
-         `<div class="calc">First 8 h: <b>${fmt(tot/2)} mL</b> → <b>${fmt(tot/16)} mL/h</b>. Next 16 h: <b>${fmt(tot/2)} mL</b> → <b>${fmt(tot/32)} mL/h</b>.</div>` +
-         `<div class="note">Add maintenance fluid: <b>${fmt(mh)} mL/h</b>. Target urine output: ${ctx.wt<30?"1 mL/kg/h":"0.5–1 mL/kg/h"} (<b>${fmt(ctx.wt*(ctx.wt<30?1:0.5))}${ctx.wt<30?"":"–"+fmt(ctx.wt)} mL/h</b>). Subtract the time already passed since the burn. COBIS (Scotland) uses 1.5–2 mL × kg × %TBSA in the first 8 h. Follow your burns network.</div>`;
+       const t = parseFloat(v.tbsa), w = ctx.wt;
+       if (!(t>0)) return `<div class="note">Colour the body map above, or type the % TBSA. Don't count simple erythema (red skin without blisters). Children with <b>10% or more</b> usually need IV resuscitation fluid.</div>`;
+       if (t < 10) return `<div class="alert ok"><b>Under 10% TBSA: IV resuscitation fluid isn't usually needed.</b> Give oral or maintenance fluids and good analgesia.</div>`;
+       const tot = 3*w*t, half = tot/2, mday = hsDay(w), mh = mday/24;
+       const h = parseFloat(v.hrs), hasH = v.hrs !== "" && h >= 0;
+       const left8 = hasH ? 8 - h : 8;
+       const r8 = left8 > 0 ? half/left8 : null, r16 = half/16;
+       const hsTxt = w<=10 ? `100 mL × ${fmt(w)} kg` : w<=20 ? `1000 mL + 50 mL × ${fmt(w-10)} kg` : `1500 mL + 20 mL × ${fmt(w-20)} kg`;
+       const step = (n, title, body) => `<div class="calc" style="margin-top:6px"><b>Step ${n}. ${title}</b><br>${body}</div>`;
+       let o = "";
+       o += step(1, "Total resuscitation fluid for the first 24 h",
+         `3 mL × <b>${fmt(w)} kg</b> × <b>${fmt(t)}%</b> = <b>${fmt(tot)} mL</b> of warmed Hartmann's.<br><small>The 24 h start from the <b>time of the burn</b>, not from arrival in ED.</small>`);
+       o += step(2, "Give half in the first 8 h after the burn",
+         `Half = <b>${fmt(half)} mL</b>. ` + (!hasH ? `Over 8 h = <b>${fmt(half/8)} mL/h</b>.<br><small>Enter the hours since the burn above: the rate goes up to catch up the time already lost.</small>`
+           : r8 ? `${fmt(h)} h have already passed, so give it over the remaining <b>${fmt(left8)} h</b> = <b>${fmt(r8)} mL/h</b>.<br><small>Subtract any IV fluid already given (e.g. by the ambulance) from the ${fmt(half)} mL.</small>`
+           : `The first 8 h have already passed. Go to step 3 and discuss the plan with the burns centre.`));
+       o += step(3, "Give the other half over the next 16 h",
+         `<b>${fmt(half)} mL</b> ÷ 16 h = <b>${fmt(r16)} mL/h</b>.`);
+       o += step(4, "Add maintenance fluid as well (separate, not part of the burn fluid)",
+         `Holliday–Segar: ${hsTxt} = ${fmt(mday)} mL/day ÷ 24 = <b>${fmt(mh)} mL/h</b>. Use your local maintenance fluid.`);
+       const now = r8 ?? r16;
+       o = bigline(`${fmt(now + mh)} mL/h`, `total IV rate to start now = ${fmt(now)} mL/h burn fluid + ${fmt(mh)} mL/h maintenance`) + o;
+       o += step(5, "Then let the urine guide you, not the formula",
+         `Catheterise. Target urine output ${w<30?"1 mL/kg/h":"0.5–1 mL/kg/h"} = <b>${fmt(w*(w<30?1:0.5))}${w<30?"":"–"+fmt(w)} mL/h</b>. Review every hour: too little urine, increase the burn fluid; too much, reduce it.`);
+       o += `<div class="note">The formula is only a starting point. COBIS (Scotland) uses 1.5–2 mL × kg × %TBSA in the first 8 h. Follow the burns centre's advice.</div>`;
+       return o;
      }, verify:true, src:["lsebn","cobis","evelinaBurns"]},
    { name:"If shocked", info: ctx => bigline(`${fmt(10*ctx.wt)} mL`, "balanced crystalloid bolus (10 mL/kg), titrated to response") +
        `<div class="note">Burns rarely cause early shock, so look for other injuries. Refer to the burns centre and discuss transfer.</div>`, src:["evelinaBurns"]},
@@ -765,6 +810,13 @@ const SCEN = [
        out.push(`<div class="note">Clean and debride the burn thoroughly. Antibiotics don't prevent tetanus. Spasms or rigidity near the wound: treat as clinical tetanus and get urgent senior help.</div>`);
        return out.join("");
      }, verify:true, src:["ukhsaTet","greenTet"]},
+   { name:"Antibiotics: yes or no?", noCheck:true, info: ctx =>
+       `<div class="alert ok"><b>NO routine antibiotics</b> for a well child with a burn, whatever its size. Prophylactic antibiotics are not recommended. Clean the burn and use a non-adherent dressing.</div>` +
+       `<div class="alert warn"><b>YES: start IV antibiotics if the child is unwell after a burn</b> and you suspect toxic shock syndrome (TSS), burn wound cellulitis or sepsis.<br>
+        <b>Think TSS if:</b> fever 38 °C or above, rash, diarrhoea or vomiting, irritability or drowsiness, poor feeding, or reduced urine output. Under-4s are most at risk. TSS can happen with <b>small, clean burns</b>, and even if the child is already on antibiotics.</div>` +
+       `<div class="calc"><b>What to give:</b> IV flucloxacillin + IV clindamycin.<br><b>Penicillin allergy:</b> IV clindamycin + IV vancomycin.<br><small>Doses: check the BNFc or your local paediatric antimicrobial guidance.</small></div>` +
+       `<div class="note">If you suspect TSS: A–E and PLS, urgent senior review, and call the burns centre. <b>Don't clean or debride the wound</b>, as this can make the child worse. Before discharge, give every family toxic shock safety-net advice.</div>`,
+     src:["lsebnTss","swukBurns"]},
    D.infent
  ]},
  { id:"resus", name:"Cardiac arrest", red:true, src:["rcuk","w_postarrest"], drugs:[
