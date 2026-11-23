@@ -281,6 +281,7 @@ const SRC = {
   ukhsaTet:["UKHSA tetanus-prone wound guidance (updated Aug 2026)", "https://www.gov.uk/government/publications/tetanus-advice-for-health-professionals/guidance-on-the-management-of-suspected-tetanus-cases-and-the-assessment-and-management-of-tetanus-prone-wounds"],
   greenTet:["Green Book chapter 30: tetanus", "https://www.gov.uk/government/publications/tetanus-the-green-book-chapter-30"],
   lsebn:   ["LSEBN initial management of severe burns", "https://lsebn.nhs.uk/_common/getdocument?id=391625"],
+  medusaCTM:["Medusa paediatric IV monographs (CTM, via Eolas), checked 23 Nov 2026", "https://app.eolasmedical.com/organisation/Royal%20Glamorgan%20ED%20--%20Cwm%20Taf%20Morgannwg%20University%20Health%20Board/medusaMedications/paedIntravenous"],
   lsebnTss:["LSEBN paediatric burns & toxic shock syndrome guideline (Jan 2026)", "https://lsebn.nhs.uk/_common/getdocument?id=396469"],
   swukBurns:["SWUK Children's Burns Centre, Bristol: referral & toxic shock advice", "https://www.uhbristol.nhs.uk/media/3181387/paedburnsreferralposter_-_apr14.pdf"],
   cobis:   ["COBIS paediatric burns ED poster (2024)", "https://www.nn.nhs.scot/cobis/wp-content/uploads/sites/9/2024/11/NSD610-006.19-ED-poster-Paed-burns-v2.pdf"],
@@ -1417,49 +1418,67 @@ function checker(i, r){
 /* ---------- IV preparation (public NHS / national sources; check against Medusa) ----------
    stock: [{label, perMl}] first = default; target: final concentration per mL (null = no further dilution);
    finalVol: fixed final volume in mL; bag(ageM): bag volume in mL; overMin: minutes; overText: how to give. */
+const MEDUSA_CHECKED = "23 Nov 2026";   // date every DIL entry below was checked against Medusa (CTM paediatric IV monographs)
 const DIL = {
   tranexamic:{ stock:[{label:"500 mg/5 mL (100 mg/mL)",perMl:100}],
-    overText:"Dilute in a convenient volume of 0.9% saline or glucose 5% and give over 10 min.", src:["rcpchTXA","bwcTXA"] },
-  artesunate:{ stock:[{label:"60 mg vial + 1 mL sodium bicarbonate (supplied) + 5 mL 0.9% saline (10 mg/mL)",perMl:10}],
-    overText:"Slow IV bolus over about 3–4 min.", note:"Don't use water for injection as the diluent. Use within 1 hour of mixing.", src:["worcsMalaria","tayArt"] },
-  dantrolene:{ stock:[{label:"reconstituted dantrolene (each 20 mg vial + 60 mL water for injection = 0.33 mg/mL)",perMl:1/3}],
-    overText:"Rapid IV bolus. Needs several people to mix vials quickly.", src:["ukmhr","qrhMH"] },
+    overText:"Can be given undiluted, or diluted in a convenient volume of sodium chloride 0.9% or glucose 5%. Up to 1 g: give over at least 10 min with a pump. Over 1 g: no faster than 100 mg/min.", src:["medusaCTM","rcpchTXA"] },
+  artesunate:{ stock:[{label:"Artesun/Malacef 60 mg vial + 1 mL sodium bicarbonate 5% (supplied), then + 5 mL sodium chloride 0.9% (10 mg/mL)",perMl:10},
+                      {label:"Amivas 110 mg vial + 11 mL sodium phosphate (supplied) (10 mg/mL)",perMl:10}],
+    overText:"Slow IV injection over 1–2 min.", note:"Artesun/Malacef: vent the vial, use within 1 hour. Amivas: swirl gently 5–6 min (don't shake), use within 1.5 hours. Don't use water for injections.", src:["medusaCTM","worcsMalaria"] },
+  dantrolene:{ stock:[{label:"Dantrium 20 mg vial + 59 mL water for injections (20 mg in 60 mL = 0.33 mg/mL)",perMl:1/3},
+                      {label:"Agilus 120 mg vial + 20 mL water for injections (22.6 mL, 5.3 mg/mL)",perMl:5.3}],
+    overText:"Rapid IV injection over at least 1 minute. Don't dilute further with any other fluid.", note:"Dantrium: draw up through the filter supplied (new filter for each vial). Agilus: shake about 1 min until clear (yellow-orange). Large volumes: several people needed to mix vials quickly.", src:["medusaCTM","ukmhr"] },
   adenosine: { stock:[{label:"3 mg/mL (3000 micrograms/mL)",perMl:3000}],
-    overText:"Rapid IV bolus into a large proximal vein, immediately followed by a rapid 0.9% saline flush (3-way tap). Record an ECG strip.", src:["rcuk","bnfc"] },
-  amiodarone:  { stock:[{label:"150 mg/3 mL ampoule (50 mg/mL)",perMl:50},{label:"300 mg/10 mL pre-filled syringe (30 mg/mL)",perMl:30}],
-    overText:"In cardiac arrest: give as a rapid bolus, then flush with 0.9% saline or 5% glucose.",
-    note:"Outside arrest, the Queensland children's chart dilutes 150 mg/3 mL to 15 mL with glucose 5% (10 mg/mL) and gives it over 5 min.", src:["rcuk","qld"] },
-  atropine:    { stock:[{label:"600 micrograms/mL",perMl:600}], target:100, prepFirst:true, diluent:"sodium chloride 0.9%", overText:"IV push.", src:["qld"] },
-  calciumGluc: { stock:[{label:"10% (dose already in mL)",perMl:1}], diluent:"", overText:"Give over 5–10 min (RCUK 2026). Birmingham dilutes it to 50 mL with 0.9% saline for a peripheral line.", src:["rcuk","bwcHyperK"], volIsDose:true },
-  lorazepam:   { stock:[{label:"4 mg/mL",perMl:4}], target:2, prepFirst:true, diluent:"sodium chloride 0.9%", overText:"Slow IV injection over 2–5 min into a large vein.", src:["rchLoraz"] },
-  levetiracetam:{ stock:[{label:"500 mg/5 mL (100 mg/mL)",perMl:100}], target:50, diluent:"sodium chloride 0.9%", overMin:5, src:["bwcLev"] },
+    overText:"Rapid IV injection (over 2 seconds) into a central or large proximal vein, as close to the cannula as possible, immediately followed by a rapid sodium chloride 0.9% flush. Record an ECG strip.", src:["medusaCTM","rcuk"] },
+  amiodarone:  { stock:[{label:"300 mg/10 mL pre-filled syringe (30 mg/mL)",perMl:30},{label:"150 mg/3 mL ampoule (50 mg/mL)",perMl:50}],
+    overText:"Cardiac arrest: the 300 mg/10 mL pre-filled syringe is preferred. Or use 50 mg/mL undiluted, or dilute the dose to 10–20 mL with glucose 5%. Give as a bolus, then flush the line liberally.",
+    note:"Outside cardiac arrest (loading dose): give as an infusion in glucose 5% (no weaker than 0.6 mg/mL) over 20–120 min with a pump. Above 2 mg/mL needs a central line, except in an extreme emergency.", src:["medusaCTM","rcuk"] },
+  atropine:    { stock:[{label:"600 micrograms/mL ampoule",perMl:600}], overText:"Give by RAPID IV injection: slow injection can cause paradoxical bradycardia. Usually given undiluted in children; if you need to dilute, use any convenient volume of sodium chloride 0.9%.",
+    note:"Neonates: dilute 0.1 mL with 0.9 mL sodium chloride 0.9% (60 micrograms/mL). Pre-filled syringes can't be diluted; use ampoules.", src:["medusaCTM"] },
+  calciumGluc: { stock:[{label:"10% (dose already in mL)",perMl:1}], volIsDose:true, oneIn:5, diluent:"sodium chloride 0.9% or glucose 5%",
+    overText:"Give over 5–10 min with ECG monitoring. Undiluted 10% only via a central line in an emergency.", src:["medusaCTM","rcuk"] },
+  lorazepam:   { stock:[{label:"4 mg/mL",perMl:4}], target:2, prepFirst:true, diluent:"sodium chloride 0.9% or glucose 5% (equal volume)",
+    overText:"Seizures: give by rapid IV injection (some references: over 1 min) into a large vein. Dilute just before giving.", note:"Neonates: dilute to 100 micrograms/mL instead.", src:["medusaCTM","rchLoraz"] },
+  levetiracetam:{ stock:[{label:"500 mg/5 mL (100 mg/mL)",perMl:100}], target:50, diluent:"sodium chloride 0.9% or glucose 5%", overMin:5,
+    note:"Status epilepticus: 50 mg/mL over 5 min with a pump. Other uses: 2.5–15 mg/mL over 15 min.", src:["medusaCTM","bwcLev"] },
   phenytoin:   { stock:[{label:"250 mg/5 mL (50 mg/mL)",perMl:50}], target:10, diluent:"sodium chloride 0.9%", overMin:20,
-    note:"Don't go above 10 mg/mL or 1 mg/kg/min. Give with ECG monitoring and flush with saline before and after. Some guides use a 0.22 micron in-line filter.", src:["phenSpc","cemPhen"] },
-  magnesium:   { stock:[{label:"50% (500 mg/mL)",perMl:500}], target:20, diluent:"sodium chloride 0.9% or glucose 5%", overMin:20,
-    note:"20 mg/mL is for a peripheral line. Via a central line, or if fluid restricted, use 100 mg/mL. Use cardiac monitoring.", src:["bwcMag"] },
-  salbutamolIV:{ stock:[{label:"5 mg/5 mL (1 mg/mL = 1000 micrograms/mL)",perMl:1000},{label:"500 micrograms/mL ampoule",perMl:500}], target:50, prepFirst:true,
-    diluent:"glucose 5% or sodium chloride 0.9%", overMin:10,
-    note:"Clyde EDs instead draw up the dose, dilute it to 5 mL and give it over 5–10 min. Either way, check the strength: both 1 mg/mL and 500 micrograms/mL ampoules exist.", src:["qld","cemSalb"] },
-  aminophylline:{ stock:[{label:"250 mg/10 mL (25 mg/mL)",perMl:25}], target:1, diluent:"glucose 5% (500 mg in 500 mL)", overMin:20,
-    note:"Uses the same 1 mg/mL bag as the infusion. Give with ECG monitoring.", src:["nectar","bwcKids"] },
-  ceftriaxone: { stock:[{label:"1 g vial dissolved in 20 mL saline (50 mg/mL)",perMl:50}], diluent:"sodium chloride 0.9%",
-    bag: a => a < 12 ? 25 : a < 72 ? 50 : 100, overMin:30, note:"Bag volumes can be adjusted, or the dose given in a syringe, if that's more practical.", src:["tayCef"] },
-  amoxicillin: { stock:[{label:"250 mg vial + 2.3 mL water for injection (100 mg/mL)",perMl:100}], overText:"Slow IV bolus over 3–5 min with no further dilution, or an infusion over 30 min.",
-    src:["amoxWoS"] },
-  aciclovir:   { stock:[{label:"25 mg/mL (concentrate, or 250 mg vial + 10 mL water for injection)",perMl:25}], target:5, diluent:"sodium chloride 0.9%", overMin:60,
-    note:"Never give as a bolus. You can give 25 mg/mL undiluted via a central line only, in fluid-restricted patients.", src:["aciSpc"] },
-  morphineIV:  { stock:[{label:"10 mg/mL",perMl:10}], target:1, prepFirst:true, diluent:"sodium chloride 0.9%", overText:"Slow IV injection over at least 5 min, titrated to effect.", src:["airAmb","qld"] },
-  ketamineIV:  { stock:[{label:"100 mg/mL",perMl:100},{label:"50 mg/mL",perMl:50},{label:"10 mg/mL",perMl:10}], target:10, prepFirst:true, diluent:"sodium chloride 0.9%",
-    overText:"Slow IV injection over at least 1 min.", src:["qld","rcemKet"] }
+    overMinFn:(dose, ctx) => ctx.wt >= 50 ? Math.max(20, Math.ceil(dose/50)) : 20,   // 50 kg+: max 50 mg/min
+    note:"Give through a 0.22–0.5 micron in-line filter with a pump. Start straight after mixing and finish within 1 hour. Under 50 kg: over 20 min (max 1 mg/kg/min); 50 kg and over: max 50 mg/min. ECG monitoring; flush with saline before and after.", src:["medusaCTM","phenSpc"] },
+  magnesium:   { stock:[{label:"50% (500 mg/mL)",perMl:500},{label:"20% (200 mg/mL)",perMl:200},{label:"10% (100 mg/mL)",perMl:100}], target:50, diluent:"sodium chloride 0.9% or glucose 5%", overMin:20,
+    note:"5% (50 mg/mL) for a peripheral line. Stronger (10–20%) only if fluid restricted or in an emergency, preferably central. Never faster than 10 mg/kg/min. Invert the syringe at least 5 times to mix. Cardiac monitoring.", src:["medusaCTM","bwcMag"] },
+  salbutamolIV:{ stock:[{label:"500 micrograms/mL injection ampoule",perMl:500},{label:"5 mg/5 mL infusion concentrate (1 mg/mL)",perMl:1000}], target:50, prepFirst:true,
+    diluent:"sodium chloride 0.9% or glucose 5%", overMin:10,
+    note:"Medusa: give over 5–10 min, using the 500 micrograms/mL injection for the bolus (1 mL + 9 mL = 50 micrograms/mL); the 5 mg/5 mL is for infusions. For doses under 1 mL, dilute further to 3–5 mL.", src:["medusaCTM","qld"] },
+  aminophylline:{ stock:[{label:"250 mg/10 mL (25 mg/mL)",perMl:25}], target:1, diluent:"sodium chloride 0.9% or glucose 5%", overMin:20,
+    note:"1 mg/mL for a peripheral line (can use the same bag as the infusion). Over at least 20 min, no faster than 25 mg/min. Undiluted 25 mg/mL only via a central line. ECG monitoring.", src:["medusaCTM","nectar"] },
+  ceftriaxone: { stock:[{label:"1 g vial + 9.3 mL sodium chloride 0.9% or glucose 5% (100 mg/mL)",perMl:100},{label:"2 g vial + 19 mL sodium chloride 0.9% or glucose 5% (100 mg/mL)",perMl:100}],
+    target:50, diluent:"the same diluent", overMin:30,
+    overFn:(dose, ctx) => { const mgkg = dose/ctx.wt;
+      if (ctx.ageM != null && ctx.ageM < 1) return "Neonate: give over at least 60 min.";
+      return mgkg > 80 ? "Over 80 mg/kg: give over 30 min with a pump." : "80 mg/kg or less: give over 10–30 min with a pump. Up to 50 mg/kg (max 2 g) can instead be given as an injection over 5 min (reconstitute with water for injections)."; },
+    note:"Shake up to 3 min until clear. Maximum 50 mg/mL for an infusion. Doses over 2.5 g: split equally between two syringes.", src:["medusaCTM","tayCef"] },
+  amoxicillin: { stock:[{label:"1 g vial + 19 mL water for injections (50 mg/mL)",perMl:50},{label:"500 mg vial + 9.6 mL water for injections (50 mg/mL)",perMl:50},{label:"250 mg vial + 4.8 mL water for injections (50 mg/mL)",perMl:50}],
+    overFn:(dose, ctx) => dose/ctx.wt <= 30 && dose <= 1000
+      ? "30 mg/kg or less (max 1 g): IV injection over at least 3 min, no further dilution. Or an infusion over 30 min."
+      : "Over 30 mg/kg or over 1 g: give as an INFUSION over 30 min with a pump. Dilute the dose in any convenient volume of sodium chloride 0.9% (high doses by injection can cause CNS toxicity).",
+    note:"Use straight after reconstitution. 50 mg/mL is preferred in children; 100 mg/mL is for neonates only.", src:["medusaCTM","amoxWoS"] },
+  aciclovir:   { stock:[{label:"25 mg/mL (concentrate, or 250 mg vial + 10 mL water for injections)",perMl:25}], target:5, diluent:"sodium chloride 0.9%", overMin:60,
+    note:"Never give as a bolus: faster than 1 hour risks kidney damage. You can give 25 mg/mL undiluted via a central line only, in fluid-restricted patients.", src:["medusaCTM","aciSpc"] },
+  morphineIV:  { stock:[{label:"10 mg/mL",perMl:10},{label:"1 mg/mL ampoule",perMl:1}], target:1, prepFirst:true, diluent:"sodium chloride 0.9% or glucose 5%",
+    overText:"Slow IV injection over at least 5 min, titrated to effect.", note:"Several strengths exist: check the ampoule (total mg AND mg per mL). Use low-strength ampoules for small doses.", src:["medusaCTM","airAmb"] },
+  ketamineIV:  { stock:[{label:"10 mg/mL",perMl:10},{label:"50 mg/mL",perMl:50},{label:"100 mg/mL (unlicensed, must be diluted)",perMl:100}], target:10, prepFirst:true, diluent:"sodium chloride 0.9% or glucose 5%",
+    overText:"Slow IV injection over at least 60 seconds (faster can cause respiratory depression and high blood pressure).", src:["medusaCTM","rcemKet"] }
 };
 
 function dilCalc(med, dose, unit, ctx, stockIdx, overOverride){
   const D0 = DIL[med]; if (!D0) return null;
-  const D = overOverride ? Object.assign({}, D0, {overMin: overOverride}) : D0;
+  let D = overOverride ? Object.assign({}, D0, {overMin: overOverride}) : D0;
+  if (D0.overMinFn && !overOverride) D = Object.assign({}, D, {overMin: D0.overMinFn(dose, ctx)});
   const s = D.stock[stockIdx||0];
   const lines = [];
   if (D.volIsDose){
     lines.push(`Draw up <b>${fmt(dose)} mL</b> of calcium gluconate 10%.`);
+    if (D.oneIn) lines.push(`Add <b>${fmt(dose*(D.oneIn-1))} mL</b> ${esc(D.diluent)} (each 1 mL + ${D.oneIn-1} mL) → total <b>${fmt(dose*D.oneIn)} mL</b>.`);
     lines.push(esc(D.overText));
     return lines.join("<br>");
   }
@@ -1494,6 +1513,7 @@ function dilCalc(med, dose, unit, ctx, stockIdx, overOverride){
   if (D.overMin && total) lines.push(`Give over <b>${D.overMin} min</b> → <b>${fmt(total/D.overMin*60)} mL/h</b>.`);
   else if (D.overMin) lines.push(`Give over ${D.overMin} min.`);
   if (D.overText) lines.push(esc(D.overText));
+  if (D.overFn) lines.push(`<b>${esc(D.overFn(dose, ctx))}</b>`);
   return lines.join("<br>");
 }
 
@@ -1509,7 +1529,7 @@ function medusaPanel(d, i, r, ctx){
     ${sel}<div class="dil-out" id="dil-${i}">${dilCalc(d.med, r.hi, r.unit, ctx, 0, d.dilOver)}</div>
     ${D.note?`<div class="note">${esc(D.note)}</div>`:""}
     <div class="src">Preparation source: ${srcLinks(D.src)}</div>
-    <div class="note" style="color:var(--muted)">${check}</div></div>`;
+    <div class="note" style="color:var(--muted)">✔ Checked against Medusa (CTM) on ${MEDUSA_CHECKED}. ${check}</div></div>`;
 }
 
 function wireCards(sc, ctx){
