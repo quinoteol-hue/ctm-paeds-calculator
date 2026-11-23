@@ -1,7 +1,7 @@
 // Offline cache for the CTM PAEDS Calculator.
 // Online: always fetch the newest version (and refresh the cache). Offline: use the saved copy.
-const CACHE = "ctm-paeds-v4";
-const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
+const CACHE = "ctm-paeds-v5";
+const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-192-v2.png", "./icon-512-v2.png", "./icon-maskable-192-v2.png", "./icon-maskable-512-v2.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
