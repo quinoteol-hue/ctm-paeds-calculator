@@ -1640,5 +1640,6 @@ function doseMeta(){ const n = Object.keys(DOSE_TABLE.overrides).length;
 $("meta").textContent = `Version ${CONFIG.version} · Doses last checked ${CONFIG.dosesLastChecked} · Works offline (online links need a network).`;
 render();
 </script>
+<script>if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js");</script>
 </body>
 </html>
